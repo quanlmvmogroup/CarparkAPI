@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "CarparkQueue": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7215"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
+      "httpPort": 30951,
+      "useSSL": false
+    }
+  }
+}
