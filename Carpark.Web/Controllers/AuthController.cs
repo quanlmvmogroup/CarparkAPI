@@ -1,5 +1,5 @@
 ﻿using Carpark.BL.Services.Interfaces;
-using Carpark.Data.Models;
+using Carpark.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -11,11 +11,11 @@ namespace Carpark.Web.Controllers
 {
     public class AuthController : BaseController
     {
-        private readonly IAuthBiz _auth;
+        private readonly IAuthService _auth;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IConfiguration _configuration;
 
-        public AuthController(IAuthBiz auth, IHttpContextAccessor contextAccessor, IConfiguration configuration)
+        public AuthController(IAuthService auth, IHttpContextAccessor contextAccessor, IConfiguration configuration)
         {
             _auth = auth;
             _contextAccessor = contextAccessor;

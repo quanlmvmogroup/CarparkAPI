@@ -18,9 +18,8 @@
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Carpark.BL\Carpark.BL.csproj" />
-    <ProjectReference Include="..\Carpark.Data\Carpark.Data.csproj" />
-    <ProjectReference Include="..\Carpark.ViewModel\Carpark.ViewModel.csproj" />
+    <ProjectReference Include="..\Carpark.Data\Carpark.Core.csproj" />
+    <ProjectReference Include="..\Carpark.Infrastructure\Carpark.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

@@ -18,7 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Carpark.BL\Carpark.BL.csproj" />
+    <ProjectReference Include="..\Carpark.Data\Carpark.Core.csproj" />
+    <ProjectReference Include="..\Carpark.Infrastructure\Carpark.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

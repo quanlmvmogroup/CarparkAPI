@@ -1,7 +1,7 @@
-﻿using Carpark.Data.Common;
+﻿using Carpark.Core.Common;
 using Carpark.Utilities.Enums;
 
-namespace Carpark.ViewModel.Models
+namespace Carpark.Core.Models
 {
     public class SearchingCarparkInfoRequest : PaginatedRequestModel
     {

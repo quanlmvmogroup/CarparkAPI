@@ -1,9 +1,10 @@
-﻿using Carpark.BL.Services.Impls;
-using Carpark.BL.Services.Interfaces;
-using Carpark.Data.CarparkDbContext;
+﻿using Carpark.Core.Interfaces;
+using Carpark.Core.Services.Impls;
+using Carpark.Core.Services.Interfaces;
+using Carpark.Infrastructure.Db;
+using Carpark.Infrastructure.Respositories;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 [assembly: FunctionsStartup(typeof(CarparkQueue.Startup))]
@@ -13,16 +14,14 @@ namespace CarparkQueue
     {
         public override void Configure(IFunctionsHostBuilder builder)
         {
-            var context = builder.GetContext();
+            var config = builder.GetContext().Configuration;
 
-            // Retrieve the connection string from the settings.
-            var connectionString = context.Configuration.GetConnectionString("CarparkDb")
-                                   ?? context.Configuration["CarparkDb"];
+            builder.Services.AddDbContext<CarparkDbContext>(options =>
+                options.UseSqlServer(config["ConnectionStrings:CarparkDb"]));
 
-            builder.Services.AddDbContextPool<CarparkDbContext>(options =>
-                    options.UseSqlServer(connectionString));
-
-            builder.Services.AddScoped<IImportFileBiz, ImportFileBiz>();
+            builder.Services.AddTransient(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+            builder.Services.AddTransient<ICarparkRepository, CarparkRepository>();
+            builder.Services.AddTransient<IImportFileService, ImportFileService>();
         }
     }
 }

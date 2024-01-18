@@ -1,32 +1,34 @@
-using Carpark.BL.Services.Interfaces;
-using Carpark.Data.CarparkDbContext;
+using Carpark.Core.Entities;
+using Carpark.Core.Interfaces;
+using Carpark.Core.Services.Interfaces;
 using Microsoft.Azure.Storage.Blob;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CarparkQueue
 {
     public class ImportFileFunction
     {
-        private readonly IImportFileBiz _importFileBiz;
-        private readonly CarparkDbContext _context;
+        private readonly IImportFileService _importFileBiz;
+        private readonly ICarparkRepository _carparkRepository;
 
-        public ImportFileFunction(IImportFileBiz importFileBiz, CarparkDbContext context)
+        public ImportFileFunction(IImportFileService importFileBiz, ICarparkRepository carparkRepository)
         {
             _importFileBiz = importFileBiz;
-            _context = context;
+            _carparkRepository = carparkRepository;
         }
 
         [FunctionName("ImportFileFunction")]
-        public void Run([BlobTrigger("carpark-queue/{name}", Connection = "Carpark")]Stream myBlob, string name, ILogger log)
+        public async Task Run([BlobTrigger("carpark-queue/{name}", Connection = "Carpark")] Stream myBlob, string name, ILogger log)
         {
+            log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n Size: {myBlob.Length} Bytes");
+
             var connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage", EnvironmentVariableTarget.Process);
 
             if (string.IsNullOrEmpty(connectionString))
@@ -63,9 +65,7 @@ namespace CarparkQueue
                 { "CarParkBasement", "car_park_basement" }
             };
 
-            var dbSet = _context.Set<Carpark.Data.Entities.CarPark>();
-
-            var entities = dataTable.AsEnumerable().Select(row => new Carpark.Data.Entities.CarPark
+            var entities = dataTable.AsEnumerable().Select(row => new CarPark
             {
                 CarParkNo = row.Field<string>("car_park_no"),
                 Address = row.Field<string>("address"),
@@ -78,74 +78,19 @@ namespace CarparkQueue
                 NightParkingType = short.TryParse(row.Field<string>("night_parking"), out var nightParking) ? nightParking : default,
                 CarParkDeck = short.TryParse(row.Field<string>("car_park_decks"), out var carparkDeck) ? carparkDeck : default,
                 GantryHeight = decimal.TryParse(row.Field<string>("gantry_height"), out var gannyHeight) ? gannyHeight : default,
-                CarParkBasement = short.TryParse(row.Field<string>("car_park_basement"), out var carparkBasement) ? carparkBasement : default
+                CarParkBasement = short.TryParse(row.Field<string>("car_park_basement"), out var carparkBasement) ? carparkBasement : default,
+                CreatedAt = DateTime.UtcNow,
+                ModifiedAt = DateTime.UtcNow
+
             }).ToList();
 
-            using (var connection = new SqlConnection(_context.Database.GetDbConnection().ConnectionString))
+            await _carparkRepository.BulkInsert(entities);
+
+            var copyResult = CopyBlob(cloudStorageAccount, sourceContainer, destinationContainer, name, destinationFilename);
+
+            if (copyResult.Status == CopyStatus.Success)
             {
-                connection.Open();
-
-                using (var transaction = connection.BeginTransaction())
-                {
-
-                    try
-                    {
-                        var bulkInsertTable = new DataTable();
-                        foreach (var property in typeof(Carpark.Data.Entities.CarPark).GetProperties())
-                        {
-                            if (property.PropertyType.Namespace != "System" 
-                                && !property.PropertyType.IsValueType 
-                                && property.PropertyType != typeof(string))
-                            {
-                                continue;
-                            }
-
-                            if (columnMappings.TryGetValue(property.Name, out var columnName))
-                            {
-                                bulkInsertTable.Columns.Add(columnName, Nullable.GetUnderlyingType(property.PropertyType) 
-                                    ?? property.PropertyType);
-                            }
-                        }
-                        bulkInsertTable.PrimaryKey = new DataColumn[] { bulkInsertTable.Columns["car_park_no"] };
-
-                        foreach (var entity in entities)
-                        {
-                            var newRow = bulkInsertTable.NewRow();
-                            foreach (var property in typeof(Carpark.Data.Entities.CarPark).GetProperties())
-                            {
-                                if (columnMappings.TryGetValue(property.Name, out var columnName))
-                                {
-                                    newRow[columnName] = property.GetValue(entity) ?? DBNull.Value;
-                                }
-                            }
-                            bulkInsertTable.Rows.Add(newRow);
-                        }
-
-                        using (var bulkCopy = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, transaction))
-                        {
-                            bulkCopy.DestinationTableName = "car_park";
-                            
-                            foreach (DataColumn column in bulkInsertTable.Columns)
-                                bulkCopy.ColumnMappings.Add(column.ColumnName, column.ColumnName);
-
-                             bulkCopy.WriteToServer(bulkInsertTable);
-                        }
-
-                        transaction.Commit();
-
-                        var copyResult = CopyBlob(cloudStorageAccount, sourceContainer, destinationContainer, name, destinationFilename);
-
-                        if (copyResult.Status == CopyStatus.Success)
-                        {
-                            DeleteBlob(cloudStorageAccount, sourceContainer, sourceFilename);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        log.LogError($"Error during bulk insert: {ex.Message}");
-                        transaction.Rollback();
-                    }
-                }
+                DeleteBlob(cloudStorageAccount, sourceContainer, sourceFilename);
             }
         }
 

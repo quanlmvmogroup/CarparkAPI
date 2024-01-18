@@ -1,6 +1,13 @@
-using Carpark.BL.Services.Impls;
+using AutoMapper;
 using Carpark.BL.Services.Interfaces;
-using Carpark.Data.CarparkDbContext;
+using Carpark.Core.Entities;
+using Carpark.Core.Interfaces;
+using Carpark.Core.Mapper;
+using Carpark.Core.Models;
+using Carpark.Core.Services.Impls;
+using Carpark.Core.Services.Interfaces;
+using Carpark.Infrastructure.Db;
+using Carpark.Infrastructure.Respositories;
 using Carpark.Web.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
-builder.Services.AddDbContextPool<CarparkDbContext>(options =>
+builder.Services.AddDbContext<CarparkDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("CarparkDb")));
 
 builder.Services.AddSwaggerGen(c =>
@@ -85,17 +92,28 @@ builder.Services.AddSession(options =>
 });
 
 // Register the AuthService
-builder.Services.AddScoped<IAuthBiz, AuthBiz>();
-builder.Services.AddScoped<IUserBiz, UserBiz>();
-builder.Services.AddScoped<ICarparkBiz, CarparkBiz>();
-builder.Services.AddScoped<IImportFileBiz, ImportFileBiz>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IUserFavoriteRepository, UserFavoriteRepository>();
+builder.Services.AddScoped<ICarparkRepository, CarparkRepository>();
 
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserFavoriteService, UserFavoriteService>();
+builder.Services.AddScoped<ICarparkService, CarparkService>();
+builder.Services.AddScoped<IImportFileService, ImportFileService>();
 
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
 {
     options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
 });
 
+var configuration = new MapperConfiguration(cfg =>
+{
+    cfg.CreateMap<CarPark, CarparkInfoDto>();
+});
+
+IMapper mapper = configuration.CreateMapper();
+
+builder.Services.AddSingleton<IBaseMapper<CarPark, CarparkInfoDto>>(new BaseMapper<CarPark,CarparkInfoDto>(mapper));
 
 var app = builder.Build();
 

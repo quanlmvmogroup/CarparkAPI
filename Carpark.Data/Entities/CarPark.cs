@@ -1,4 +1,4 @@
-﻿namespace Carpark.Data.Entities
+﻿namespace Carpark.Core.Entities
 {
     public class CarPark
     {
@@ -14,6 +14,9 @@
         public short FreeParkingType { get; set; }
         public short NightParkingType { get; set; }
         public short ParkingTypeSystem { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? ModifiedAt { get; set; }
+        public DateTime? DeletedAt{ get; set; }
         public virtual UserFavorite UserFavoriteNavigation { get; set; }
         public virtual CarParkType CarParkTypeNavigation { get; set; }
         public virtual ParkingTypeSystem TypeOfParkingSystemNavigation { get; set; }
