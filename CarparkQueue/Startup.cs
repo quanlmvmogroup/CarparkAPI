@@ -19,7 +19,7 @@ namespace CarparkQueue
             var connectionString = context.Configuration.GetConnectionString("CarparkDb")
                                    ?? context.Configuration["CarparkDb"];
 
-            builder.Services.AddDbContext<CarparkDbContext>(options =>
+            builder.Services.AddDbContextPool<CarparkDbContext>(options =>
                     options.UseSqlServer(connectionString));
 
             builder.Services.AddScoped<IImportFileBiz, ImportFileBiz>();
